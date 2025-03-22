@@ -11,7 +11,7 @@ A Discord bot that uses AI to summarize messages in a channel.
 
 ## Prerequisites
 
-- Node.js 16.9.0 or higher
+- Node.js 22.13.1 or higher
 - Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
 - OpenRouter API key (from [OpenRouter](https://openrouter.ai/))
 
