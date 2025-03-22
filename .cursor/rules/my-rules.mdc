@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Project: Custom Discord Bot using Discord.js in JavaScript
+
+Guidelines for AI Assistance:
+- Utilize the latest Discord.js features, including slash commands and interactions.
+- Adhere to modern JavaScript standards (ES6+), using async/await for asynchronous operations.
+- Structure code modularly for scalability, such as separate files for commands and event listeners.
+- Implement robust error handling for all asynchronous operations with try/catch or .catch().
+- Use environment variables for sensitive data like API tokens, never hardcoding them.
+- Include explanatory comments in generated code to clarify functionality.
+- Suggest logging mechanisms (e.g., console.log or a logging library) for monitoring and debugging.
+- Ensure code compatibility with Node.js and specify necessary dependencies (e.g., discord.js).
+- Provide examples for registering and handling slash commands with the Discord API.
+- Include permission checks for commands that require specific user roles or permissions.
