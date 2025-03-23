@@ -216,3 +216,7 @@ If you encounter issues:
   - Bug reports
 
 Want to contribute? Pick any of these TODOs or suggest new features!
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. Feel free to use, modify, and distribute the code as you wish.
