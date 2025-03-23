@@ -1,0 +1,7 @@
+{
+    "ignore": [
+        "data/*",
+        "*.tmp"
+    ],
+    "verbose": true
+} 

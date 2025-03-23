@@ -1,19 +1,34 @@
 # Discord AI Message Summarizer
 
-A Discord bot that uses AI to summarize messages in a channel.
+A Discord bot that uses AI to summarize messages in a channel, with support for multiple languages and user preferences.
 
 ## Features
 
 - `/summarize` slash command to initiate message summarization
-- Button-based interface to select the number of messages to summarize
-- AI-powered summaries using OpenRouter API
+- Button-based interface with multiple options:
+  - Message count options: Last 10, 30, 50, 100, or 200 messages
+  - Time-based options: Today, Yesterday, Last 3 Days, Last Week
+- AI-powered summaries using OpenRouter API:
+  - Currently using DeepSeek-R1 model (configurable)
+  - Support for all OpenRouter models ([full list](https://openrouter.ai/models))
+  - High-quality, structured summaries
+  - Multi-language support
 - Thread-based summary delivery to keep channels clean
+- Multi-language support:
+  - English and Polish interfaces
+  - Language-specific AI summaries
+  - Configurable per user
+- User preferences system:
+  - `/config language` to set preferred language
+  - `/config show` to view current settings
+  - Automatic fallback to Discord's language settings
 
 ## Prerequisites
 
 - Node.js 22.13.1 or higher
 - Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
 - OpenRouter API key (from [OpenRouter](https://openrouter.ai/))
+  - Currently using DeepSeek-R1 model (can be changed to any OpenRouter model)
 
 ## Setup
 
@@ -40,7 +55,14 @@ A Discord bot that uses AI to summarize messages in a channel.
 The project structure is organized as follows:
 - `src/index.js` - Main bot file
 - `src/commands/` - Slash command implementations
+  - `summarize.js` - Message summarization command
+  - `config.js` - User preferences command
 - `src/utils/` - Utility functions and API integrations
+  - `openrouter.js` - OpenRouter API integration with DeepSeek-R1
+  - `config.js` - User configuration management
+  - `locales.js` - Localization strings
+- `data/` - Persistent data storage
+  - `user_configs.json` - User preferences
 
 ### Available Scripts
 
@@ -81,10 +103,34 @@ Required bot permissions:
 
 ## Usage
 
-1. After inviting the bot, use the `/summarize` command in any channel
-2. Select the number of messages to summarize using the buttons (10, 20, or 50)
-3. Wait for the AI to generate a summary
-4. The summary will be posted in a thread under the original command message
+### Message Summarization
+1. Use the `/summarize` command in any channel
+2. Choose from two types of summarization:
+   - Number of messages (10, 30, 50, 100, 200)
+   - Time period (Today, Yesterday, Last 3 Days, Last Week)
+3. Wait for the AI to generate a summary (using DeepSeek-R1 model)
+4. The summary will be posted in a new thread
+
+### Configuration
+1. Use `/config language` to set your preferred language:
+   - English
+   - Polski (Polish)
+   - Auto (Use Discord setting)
+2. Use `/config show` to view your current settings
+3. Settings are saved per user and persist across bot restarts
+
+## Localization Support
+
+The bot supports multiple languages:
+- Interface elements (buttons, messages)
+- AI-generated summaries (using DeepSeek-R1's multilingual capabilities)
+- Thread names and dates
+- Error messages
+
+Current languages:
+- English (default)
+- Polish
+- More languages can be easily added
 
 ## Troubleshooting
 
@@ -93,10 +139,80 @@ If you encounter issues:
 2. Check that slash commands are registered (`npm run deploy`)
 3. Verify the bot has access to the channel
 4. Ensure all environment variables are set correctly
+5. Check the `data` directory exists and is writable
+6. Verify user configurations in `data/user_configs.json`
 
 ## Requirements
 
 - Node.js 22.13.1 or higher
 - Discord.js v14
-- OpenRouter API key
-- Discord Bot Token 
+- OpenRouter API key (with access to DeepSeek-R1 or other models)
+- Discord Bot Token
+
+## TODOs and Future Features
+
+### Administration
+- [ ] Role-based access control
+  - Restrict commands to specific roles
+  - Admin configuration commands
+  - Per-server settings
+- [ ] Server-specific configurations
+  - Default language
+  - Allowed models
+  - Custom thread naming
+
+### Language Support
+- [ ] Additional languages:
+  - German
+  - French
+  - Spanish
+  - Ukrainian
+  - More based on community needs
+- [ ] Language detection for automatic mode
+- [ ] Custom translations support
+
+### AI Features
+- [ ] Model selection command
+  - Switch between available OpenRouter models
+  - Model presets for different use cases
+  - Cost optimization options
+- [ ] Enhanced summarization options
+  - Topic categorization
+  - Keyword extraction
+  - Sentiment analysis
+- [ ] Web search integration
+  - Include context from linked websites
+  - Real-time information in summaries
+  - Source verification
+
+### User Experience
+- [ ] Custom summary formats
+  - Bullet points vs. paragraphs
+  - Include/exclude user mentions
+  - Customizable date formats
+- [ ] Interactive summaries
+  - React to expand specific points
+  - Thread continuation options
+  - Summary editing for admins
+
+### Technical Improvements
+- [ ] Persistent storage options
+  - Database integration
+  - Backup system
+  - Configuration export/import
+- [ ] Performance optimizations
+  - Message caching
+  - Batch processing
+  - Rate limiting controls
+
+### Community Features
+- [ ] Usage statistics
+  - Per-user summary counts
+  - Most active channels
+  - Popular time periods
+- [ ] Feedback system
+  - Summary quality ratings
+  - Feature requests
+  - Bug reports
+
+Want to contribute? Pick any of these TODOs or suggest new features!

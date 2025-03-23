@@ -7,6 +7,10 @@ package-lock.json
 .env.local
 .env.*.local
 
+# User data and configurations
+data/
+*.tmp
+
 # Logs
 logs
 *.log
@@ -31,5 +35,5 @@ yarn-error.log*
 *.swp
 *.swo
 .npm
-.eslintcache 
+.eslintcache
 git.md
