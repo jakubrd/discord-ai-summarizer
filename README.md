@@ -1,6 +1,6 @@
 # Discord AI Message Summarizer
 
-A Discord bot that uses AI to summarize messages in a channel, with support for multiple languages and user preferences.
+A Discord bot that uses AI to summarize messages in a channel, with support for multiple languages, user preferences, and usage limits.
 
 ## Features
 
@@ -13,6 +13,7 @@ A Discord bot that uses AI to summarize messages in a channel, with support for 
   - Support for all OpenRouter models ([full list](https://openrouter.ai/models))
   - High-quality, structured summaries
   - Multi-language support
+  - No user or role mentions in summaries
 - Thread-based summary delivery to keep channels clean
 - Multi-language support:
   - English and Polish interfaces
@@ -22,6 +23,14 @@ A Discord bot that uses AI to summarize messages in a channel, with support for 
   - `/config language` to set preferred language
   - `/config show` to view current settings
   - Automatic fallback to Discord's language settings
+- Usage limits system:
+  - Default limit of 10 uses per day per user
+  - `/admin` commands for server administrators:
+    - Set daily usage limits
+    - Add/remove roles with unlimited usage
+    - View current usage statistics
+  - Per-server settings
+  - Automatic daily reset
 
 ## Prerequisites
 
@@ -29,6 +38,7 @@ A Discord bot that uses AI to summarize messages in a channel, with support for 
 - Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
 - OpenRouter API key (from [OpenRouter](https://openrouter.ai/))
   - Currently using DeepSeek-R1 model (can be changed to any OpenRouter model)
+- SQLite3 (included with Node.js)
 
 ## Setup
 
@@ -57,12 +67,15 @@ The project structure is organized as follows:
 - `src/commands/` - Slash command implementations
   - `summarize.js` - Message summarization command
   - `config.js` - User preferences command
+  - `admin.js` - Server administration commands
 - `src/utils/` - Utility functions and API integrations
   - `openrouter.js` - OpenRouter API integration with DeepSeek-R1
   - `config.js` - User configuration management
   - `locales.js` - Localization strings
+  - `database.js` - SQLite database management
+  - `usage-limits.js` - Usage tracking and limits
 - `data/` - Persistent data storage
-  - `user_configs.json` - User preferences
+  - `bot.db` - SQLite database for all bot data
 
 ### Available Scripts
 
@@ -100,6 +113,7 @@ Required bot permissions:
 - Create Public Threads
 - Send Messages in Threads
 - Read Message History
+- Manage Messages (for ephemeral responses)
 
 ## Usage
 
@@ -119,6 +133,13 @@ Required bot permissions:
 2. Use `/config show` to view your current settings
 3. Settings are saved per user and persist across bot restarts
 
+### Administration
+1. Use `/admin setlimit <number>` to set daily usage limit
+2. Use `/admin addrole @role` to give a role unlimited usage
+3. Use `/admin removerole @role` to remove unlimited usage from a role
+4. Use `/admin show` to view current usage statistics
+5. Only server administrators can use these commands
+
 ## Localization Support
 
 The bot supports multiple languages:
@@ -126,6 +147,7 @@ The bot supports multiple languages:
 - AI-generated summaries (using DeepSeek-R1's multilingual capabilities)
 - Thread names and dates
 - Error messages
+- Usage limit messages
 
 Current languages:
 - English (default)
@@ -140,7 +162,7 @@ If you encounter issues:
 3. Verify the bot has access to the channel
 4. Ensure all environment variables are set correctly
 5. Check the `data` directory exists and is writable
-6. Verify user configurations in `data/user_configs.json`
+6. Verify database connection in `data/bot.db`
 
 ## Requirements
 
@@ -148,18 +170,21 @@ If you encounter issues:
 - Discord.js v14
 - OpenRouter API key (with access to DeepSeek-R1 or other models)
 - Discord Bot Token
+- SQLite3
 
 ## TODOs and Future Features
 
 ### Administration
-- [ ] Role-based access control
-  - Restrict commands to specific roles
-  - Admin configuration commands
-  - Per-server settings
-- [ ] Server-specific configurations
-  - Default language
-  - Allowed models
-  - Custom thread naming
+- [x] Role-based access control
+  - [x] Restrict commands to specific roles
+  - [x] Admin configuration commands
+  - [x] Per-server settings
+- [x] Server-specific configurations
+  - [x] Default language
+  - [x] Allowed models
+  - [x] Custom thread naming
+- [ ] Usage analytics dashboard
+- [ ] Automated backup system
 
 ### Language Support
 - [ ] Additional languages:
@@ -196,10 +221,10 @@ If you encounter issues:
   - Summary editing for admins
 
 ### Technical Improvements
-- [ ] Persistent storage options
-  - Database integration
-  - Backup system
-  - Configuration export/import
+- [x] Persistent storage options
+  - [x] Database integration
+  - [ ] Backup system
+  - [ ] Configuration export/import
 - [ ] Performance optimizations
   - Message caching
   - Batch processing

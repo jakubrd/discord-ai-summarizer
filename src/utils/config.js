@@ -1,6 +1,7 @@
 const { Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { getUserConfig: dbGetUserConfig, updateUserConfig: dbUpdateUserConfig } = require('./database');
 
 // Path to the config file
 const CONFIG_FILE = path.join(__dirname, '../../data/user_configs.json');
@@ -65,41 +66,33 @@ function saveConfigs() {
 /**
  * Get user's configuration, creating default if none exists
  * @param {string} userId - Discord user ID
- * @returns {Object} User's configuration
+ * @param {string} guildId - Discord guild ID
+ * @returns {Promise<Object>} User's configuration
  */
-function getUserConfig(userId) {
-    if (!userConfigs.has(userId)) {
-        userConfigs.set(userId, { ...defaultConfig });
-        saveConfigs(); // Save when creating new config
-    }
-    return userConfigs.get(userId);
+async function getUserConfig(userId, guildId) {
+    return await dbGetUserConfig(userId, guildId);
 }
 
 /**
  * Update user's configuration
  * @param {string} userId - Discord user ID
+ * @param {string} guildId - Discord guild ID
  * @param {Object} newConfig - New configuration options
- * @returns {Object} Updated configuration
+ * @returns {Promise<void>}
  */
-function updateUserConfig(userId, newConfig) {
-    const currentConfig = getUserConfig(userId);
-    const updatedConfig = {
-        ...currentConfig,
-        ...newConfig
-    };
-    userConfigs.set(userId, updatedConfig);
-    saveConfigs(); // Schedule save after updating config
-    return updatedConfig;
+async function updateUserConfig(userId, guildId, newConfig) {
+    await dbUpdateUserConfig(userId, guildId, newConfig);
 }
 
 /**
  * Get the effective locale for a user
  * @param {string} userId - Discord user ID
+ * @param {string} guildId - Discord guild ID
  * @param {string} discordLocale - User's Discord locale
- * @returns {string} Effective locale to use
+ * @returns {Promise<string>} Effective locale to use
  */
-function getEffectiveLocale(userId, discordLocale) {
-    const config = getUserConfig(userId);
+async function getEffectiveLocale(userId, guildId, discordLocale) {
+    const config = await getUserConfig(userId, guildId);
     return config.locale || discordLocale;
 }
 

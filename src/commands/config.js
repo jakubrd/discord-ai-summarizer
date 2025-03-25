@@ -54,7 +54,7 @@ module.exports = {
             console.log(`Processing ${subcommand} for user ${userId} with locale ${discordLocale}`);
 
             if (subcommand === 'show') {
-                const config = getUserConfig(userId);
+                const config = await getUserConfig(userId, interaction.guildId);
                 const locale = config.locale || 'auto';
                 const message = getLocaleString(discordLocale, 'configCurrent').replace('{language}', 
                     locale === 'auto' ? 'Auto (Discord)' : locale.toUpperCase()
@@ -71,10 +71,10 @@ module.exports = {
                 const newLocale = interaction.options.getString('locale');
                 console.log(`Updating locale to: ${newLocale}`);
                 
-                const config = updateUserConfig(userId, {
+                await updateUserConfig(userId, interaction.guildId, {
                     locale: newLocale === 'auto' ? null : newLocale
                 });
-                console.log('Config updated:', config);
+                console.log('Config updated');
 
                 const message = getLocaleString(discordLocale, 'configUpdated').replace('{language}', 
                     newLocale === 'auto' ? 'Auto (Discord)' : newLocale.toUpperCase()

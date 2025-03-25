@@ -7,6 +7,7 @@ const locales = {
         summaryCreated: (thread) => `Summary has been created in thread: ${thread}`,
         errorGenerating: 'Sorry, there was an error generating the summary. Please try again later.',
         errorButtons: 'Sorry, there was an error creating the buttons. Please try again later.',
+        usageLimitReached: (remaining) => `You have reached your daily usage limit. You have ${remaining} uses remaining.`,
         // Button labels
         last10: 'Last 10',
         last30: 'Last 30',
@@ -29,6 +30,7 @@ const locales = {
         summaryCreated: (thread) => `Podsumowanie zostało utworzone w wątku: ${thread}`,
         errorGenerating: 'Przepraszam, wystąpił błąd podczas generowania podsumowania. Spróbuj ponownie później.',
         errorButtons: 'Przepraszam, wystąpił błąd podczas tworzenia przycisków. Spróbuj ponownie później.',
+        usageLimitReached: (remaining) => `Osiągnąłeś dzienny limit użycia. Pozostało Ci ${remaining} użyć.`,
         // Button labels
         last10: 'Ostatnie 10',
         last30: 'Ostatnie 30',

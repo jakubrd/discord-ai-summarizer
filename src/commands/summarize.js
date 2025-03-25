@@ -2,6 +2,7 @@ const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Messa
 const { generateSummary } = require('../utils/openrouter');
 const { getLocaleString } = require('../utils/locales');
 const { getEffectiveLocale } = require('../utils/config');
+const { hasUnlimitedUsage, hasReachedLimit, incrementUsage, getRemainingUses } = require('../utils/usage-limits');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,7 +18,22 @@ module.exports = {
         try {
             const userId = interaction.user.id;
             const discordLocale = interaction.locale;
-            const effectiveLocale = getEffectiveLocale(userId, discordLocale);
+            const effectiveLocale = await getEffectiveLocale(userId, interaction.guildId, discordLocale);
+
+            // Check usage limits
+            const hasUnlimited = await hasUnlimitedUsage(interaction.member);
+            if (!hasUnlimited) {
+                const hasReached = await hasReachedLimit(userId, interaction.guildId);
+                if (hasReached) {
+                    const remaining = await getRemainingUses(userId, interaction.guildId);
+                    await interaction.reply({
+                        content: getLocaleString(effectiveLocale, 'usageLimitReached', remaining),
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                    return;
+                }
+                await incrementUsage(userId, interaction.guildId);
+            }
 
             // Create buttons for specific message counts
             const messageCountRow = new ActionRowBuilder()
@@ -67,9 +83,8 @@ module.exports = {
 
             // Send the initial message with both button rows
             const response = await interaction.reply({
-                content: getLocaleString(effectiveLocale, 'chooseMessages'),
+                content: `${interaction.user} ${getLocaleString(effectiveLocale, 'chooseMessages')}`,
                 components: [messageCountRow, timeBasedRow],
-                flags: [MessageFlags.Ephemeral],
                 withResponse: true
             });
 
@@ -82,8 +97,9 @@ module.exports = {
 
                 // Update the original message to show processing
                 await interaction.editReply({
-                    content: getLocaleString(effectiveLocale, 'generatingSummary'),
-                    components: []
+                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'generatingSummary')}`,
+                    components: [],
+                    ephemeral: true
                 });
 
                 // Get the channel and guild from the original interaction
@@ -129,7 +145,7 @@ module.exports = {
                         default: {
                             // For numeric options (10, 30, 50, 100, 200)
                             const messageCount = parseInt(option);
-                            messages = await fetchMessagesSince(channel, now);
+                            messages = await fetchFilteredMessages(channel, { limit: messageCount });
                             break;
                         }
                     }
@@ -165,8 +181,9 @@ module.exports = {
 
                 // Update the original message to indicate the summary is in the thread
                 await interaction.editReply({
-                    content: getLocaleString(effectiveLocale, 'summaryCreated', thread),
-                    components: []
+                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'summaryCreated', thread)}`,
+                    components: [],
+                    ephemeral: true
                 });
 
             } catch (error) {
@@ -192,7 +209,7 @@ async function fetchFilteredMessages(channel, options = {}) {
     return messages.filter(msg => !msg.author.bot || msg.author.id !== channel.client.user.id);
 }
 
-async function fetchMessagesSince(channel, date) {
+async function fetchMessagesSince(channel, startDate) {
     let messages = new Collection();
     let lastId;
 
@@ -205,11 +222,11 @@ async function fetchMessagesSince(channel, date) {
         const batch = await fetchFilteredMessages(channel, options);
         if (batch.size === 0) break;
 
-        // Check if we've gone past our target date
+        // Check if we've gone past our start date
         const oldestInBatch = batch.last();
-        if (oldestInBatch && oldestInBatch.createdTimestamp < date.getTime()) {
-            // Filter messages newer than our target date
-            const relevantMessages = batch.filter(msg => msg.createdTimestamp >= date.getTime());
+        if (oldestInBatch && oldestInBatch.createdTimestamp < startDate.getTime()) {
+            // Filter messages after our start date
+            const relevantMessages = batch.filter(msg => msg.createdTimestamp >= startDate.getTime());
             messages = messages.concat(relevantMessages);
             break;
         }
