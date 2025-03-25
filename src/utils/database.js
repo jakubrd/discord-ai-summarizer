@@ -12,139 +12,52 @@ if (!fs.existsSync(dataDir)) {
 const DB_FILE = path.join(dataDir, 'bot.db');
 
 // Create database connection
-let db = new sqlite3.Database(DB_FILE, (err) => {
-    if (err) {
-        console.error('Error opening database:', err);
-        process.exit(1);
-    }
-});
+const db = new sqlite3.Database(DB_FILE);
 
 // Initialize database tables
-async function initializeDatabase() {
-    try {
-        // Create migrations table first
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS migrations (
-                version INTEGER PRIMARY KEY
-            )
-        `);
+db.serialize(() => {
+    // User configurations table
+    db.run(`CREATE TABLE IF NOT EXISTS user_configs (
+        user_id TEXT,
+        guild_id TEXT,
+        locale TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, guild_id)
+    )`);
 
-        // Create other tables
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS user_configs (
-                user_id TEXT NOT NULL,
-                guild_id TEXT NOT NULL,
-                locale TEXT NOT NULL DEFAULT 'en',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (user_id, guild_id)
-            )
-        `);
+    // Usage limits table
+    db.run(`CREATE TABLE IF NOT EXISTS usage_limits (
+        guild_id TEXT PRIMARY KEY,
+        max_daily_uses INTEGER DEFAULT 10,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS usage_limits (
-                guild_id TEXT PRIMARY KEY,
-                max_daily_uses INTEGER NOT NULL DEFAULT 10
-            )
-        `);
+    // Unlimited roles table
+    db.run(`CREATE TABLE IF NOT EXISTS unlimited_roles (
+        guild_id TEXT,
+        role_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (guild_id, role_id)
+    )`);
 
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS unlimited_roles (
-                guild_id TEXT NOT NULL,
-                role_id TEXT NOT NULL,
-                PRIMARY KEY (guild_id, role_id)
-            )
-        `);
+    // Usage tracking table
+    db.run(`CREATE TABLE IF NOT EXISTS usage_tracking (
+        user_id TEXT,
+        guild_id TEXT,
+        usage_date DATE,
+        usage_count INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, guild_id, usage_date)
+    )`);
 
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS usage_tracking (
-                user_id TEXT NOT NULL,
-                guild_id TEXT NOT NULL,
-                date DATE NOT NULL,
-                uses INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (user_id, guild_id, date)
-            )
-        `);
-
-        await db.run(`
-            CREATE TABLE IF NOT EXISTS admin_audit_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id TEXT NOT NULL,
-                user_id TEXT NOT NULL,
-                action TEXT NOT NULL,
-                details TEXT,
-                timestamp DATETIME NOT NULL
-            )
-        `);
-
-        // Create indexes
-        await db.run(`
-            CREATE INDEX IF NOT EXISTS idx_user_configs_user_id ON user_configs(user_id)
-        `);
-        await db.run(`
-            CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_guild ON usage_tracking(user_id, guild_id)
-        `);
-
-        console.log('Database initialized successfully');
-    } catch (error) {
-        console.error('Error initializing database:', error);
-        process.exit(1);
-    }
-}
-
-// Run migrations
-const migrations = [
-    {
-        version: 1,
-        up: async () => {
-            // Migration 1: Update column names and add missing columns
-            await db.run(`
-                ALTER TABLE usage_tracking 
-                RENAME COLUMN usage_count TO uses;
-            `);
-            await db.run(`
-                ALTER TABLE usage_tracking 
-                RENAME COLUMN usage_date TO date;
-            `);
-            return true;
-        }
-    }
-];
-
-async function runMigrations() {
-    try {
-        // Get current version
-        let currentVersion = 0;
-        try {
-            const result = await db.get('SELECT version FROM migrations ORDER BY version DESC LIMIT 1');
-            if (result) {
-                currentVersion = result.version;
-            }
-        } catch (error) {
-            console.log('No migrations found, starting from version 0');
-        }
-
-        // Run pending migrations
-        for (const migration of migrations) {
-            if (migration.version > currentVersion) {
-                console.log(`Running migration ${migration.version}...`);
-                await migration.up();
-                await db.run('INSERT INTO migrations (version) VALUES (?)', [migration.version]);
-                console.log(`Migration ${migration.version} completed`);
-            }
-        }
-    } catch (error) {
-        console.error('Error running migrations:', error);
-        process.exit(1);
-    }
-}
-
-// Initialize database and run migrations
-initializeDatabase().then(() => {
-    runMigrations().catch(error => {
-        console.error('Error during migration:', error);
-        process.exit(1);
-    });
+    // Create indexes for better performance
+    db.run('CREATE INDEX IF NOT EXISTS idx_user_configs_user_id ON user_configs(user_id)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_user_configs_guild_id ON user_configs(guild_id)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_guild ON usage_tracking(user_id, guild_id)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_usage_tracking_date ON usage_tracking(usage_date)');
 });
 
 // Helper function to get user config
@@ -255,11 +168,11 @@ function removeUnlimitedRole(guildId, roleId) {
 function getUserUsageCount(userId, guildId, date) {
     return new Promise((resolve, reject) => {
         db.get(
-            'SELECT uses FROM usage_tracking WHERE user_id = ? AND guild_id = ? AND date = ?',
+            'SELECT usage_count FROM usage_tracking WHERE user_id = ? AND guild_id = ? AND usage_date = ?',
             [userId, guildId, date],
             (err, row) => {
                 if (err) reject(err);
-                else resolve(row ? row.uses : 0);
+                else resolve(row ? row.usage_count : 0);
             }
         );
     });
@@ -269,10 +182,10 @@ function getUserUsageCount(userId, guildId, date) {
 function incrementUsageCount(userId, guildId, date) {
     return new Promise((resolve, reject) => {
         db.run(
-            `INSERT INTO usage_tracking (user_id, guild_id, date, uses)
-             VALUES (?, ?, ?, 1)
-             ON CONFLICT(user_id, guild_id, date) 
-             DO UPDATE SET uses = uses + 1`,
+            `INSERT INTO usage_tracking (user_id, guild_id, usage_date, usage_count, updated_at)
+             VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+             ON CONFLICT(user_id, guild_id, usage_date) 
+             DO UPDATE SET usage_count = usage_count + 1, updated_at = CURRENT_TIMESTAMP`,
             [userId, guildId, date],
             (err) => {
                 if (err) reject(err);
@@ -286,9 +199,9 @@ function incrementUsageCount(userId, guildId, date) {
 function getGuildUsageTracking(guildId, date) {
     return new Promise((resolve, reject) => {
         db.all(
-            `SELECT user_id, uses 
+            `SELECT user_id, usage_count 
              FROM usage_tracking 
-             WHERE guild_id = ? AND date = ?`,
+             WHERE guild_id = ? AND usage_date = ?`,
             [guildId, date],
             (err, rows) => {
                 if (err) reject(err);
@@ -302,7 +215,7 @@ function getGuildUsageTracking(guildId, date) {
 function cleanupOldUsageData() {
     return new Promise((resolve, reject) => {
         db.run(
-            'DELETE FROM usage_tracking WHERE date < date("now", "-30 days")',
+            'DELETE FROM usage_tracking WHERE usage_date < date("now", "-30 days")',
             (err) => {
                 if (err) reject(err);
                 else resolve();
@@ -375,6 +288,63 @@ db.on('error', (err) => {
 
 // Start backup schedule
 setInterval(createBackup, BACKUP_INTERVAL);
+
+// Add database migration system
+const migrations = [
+    {
+        version: 1,
+        up: async () => {
+            await db.run(`
+                CREATE TABLE IF NOT EXISTS admin_audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    guild_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    details TEXT,
+                    timestamp DATETIME NOT NULL
+                )
+            `);
+        }
+    }
+];
+
+async function runMigrations() {
+    try {
+        // Create migrations table if it doesn't exist
+        await db.run(`
+            CREATE TABLE IF NOT EXISTS migrations (
+                version INTEGER PRIMARY KEY
+            )
+        `);
+
+        // Get current version - wrap in try-catch in case table is empty
+        let currentVersion = 0;
+        try {
+            const result = await db.get('SELECT version FROM migrations ORDER BY version DESC LIMIT 1');
+            if (result) {
+                currentVersion = result.version;
+            }
+        } catch (error) {
+            console.log('No migrations found, starting from version 0');
+        }
+
+        // Run pending migrations
+        for (const migration of migrations) {
+            if (migration.version > currentVersion) {
+                console.log(`Running migration ${migration.version}...`);
+                await migration.up();
+                await db.run('INSERT INTO migrations (version) VALUES (?)', [migration.version]);
+                console.log(`Migration ${migration.version} completed`);
+            }
+        }
+    } catch (error) {
+        console.error('Error running migrations:', error);
+        process.exit(1);
+    }
+}
+
+// Run migrations on startup
+runMigrations();
 
 module.exports = {
     getUserConfig,
