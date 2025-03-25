@@ -1,0 +1,17 @@
+services:
+  discord-ai-summarizer:
+    build: .
+    container_name: discord-ai-summarizer
+    restart: unless-stopped
+    volumes:
+      - ./data:/usr/src/app/data
+      - ./.env:/usr/src/app/.env
+      - ./src:/usr/src/app/src  # Mount source code for live reload
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+    command: sh -c "if [ \"$$NODE_ENV\" = \"development\" ]; then npm run dev; else npm start; fi"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3" 

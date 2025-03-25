@@ -34,13 +34,50 @@ A Discord bot that uses AI to summarize messages in a channel, with support for 
 
 ## Prerequisites
 
-- Node.js 22.13.1 or higher
+- Node.js 22.13.1 or higher (if running without Docker)
+- Docker and Docker Compose (if running with Docker)
 - Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
 - OpenRouter API key (from [OpenRouter](https://openrouter.ai/))
   - Currently using DeepSeek-R1 model (can be changed to any OpenRouter model)
-- SQLite3 (included with Node.js)
+- SQLite3 (included with Node.js or Docker)
 
 ## Setup
+
+### Option 1: Running with Docker (Recommended)
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/discord-ai-summarizer.git
+   cd discord-ai-summarizer
+   ```
+
+2. Create a `.env` file in the root directory with the following variables:
+   ```env
+   DISCORD_TOKEN=your_discord_bot_token_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   CLIENT_ID=your_discord_application_id_here
+   ```
+
+3. Build and start the bot:
+   ```bash
+   # Start in production mode
+   docker-compose up -d
+
+   # Or start in development mode (with hot reload)
+   NODE_ENV=development docker-compose up -d
+   ```
+
+4. Deploy slash commands:
+   ```bash
+   docker-compose exec discord-ai-summarizer npm run deploy
+   ```
+
+5. View logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+### Option 2: Running without Docker
 
 1. Clone this repository:
    ```bash
@@ -76,6 +113,51 @@ The project structure is organized as follows:
   - `usage-limits.js` - Usage tracking and limits
 - `data/` - Persistent data storage
   - `bot.db` - SQLite database for all bot data
+
+### Docker Development
+
+The project includes Docker support for both development and production environments:
+
+- **Development Mode**:
+  - Hot reload enabled with `nodemon`
+  - Source code mounted for live updates
+  - Detailed logging
+  - Data persistence in `./data` directory
+
+- **Production Mode**:
+  - Optimized for performance
+  - Automatic restart on crashes
+  - Log rotation
+  - Persistent data storage
+
+- **Data Persistence**:
+  - SQLite database stored in `./data`
+  - Environment variables loaded from `.env`
+  - Source code changes reflected immediately in dev mode
+
+- **Logging**:
+  - JSON file driver for structured logs
+  - Log rotation (max 3 files, 10MB each)
+  - View logs with `docker-compose logs -f`
+
+### Available Docker Commands
+
+```bash
+# Start the bot
+docker-compose up -d
+
+# Stop the bot
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Deploy slash commands
+docker-compose exec discord-ai-summarizer npm run deploy
+
+# Access container shell
+docker-compose exec discord-ai-summarizer sh
+```
 
 ### Available Scripts
 
