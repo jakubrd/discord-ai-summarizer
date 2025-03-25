@@ -3,6 +3,7 @@ const { generateSummary } = require('../utils/openrouter');
 const { getLocaleString } = require('../utils/locales');
 const { getEffectiveLocale } = require('../utils/config');
 const { hasUnlimitedUsage, hasReachedLimit, incrementUsage, getRemainingUses } = require('../utils/usage-limits');
+const database = require('../utils/database');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,7 +19,8 @@ module.exports = {
         try {
             const userId = interaction.user.id;
             const discordLocale = interaction.locale;
-            const effectiveLocale = await getEffectiveLocale(userId, interaction.guildId, discordLocale);
+            const userConfig = await database.getUserConfig(userId, interaction.guildId);
+            const effectiveLocale = userConfig.locale || discordLocale || 'en';
 
             // Check usage limits
             const hasUnlimited = await hasUnlimitedUsage(interaction.member);
@@ -196,7 +198,7 @@ module.exports = {
         } catch (error) {
             console.error('Error in summarize command:', error);
             await interaction.reply({
-                content: getLocaleString(effectiveLocale, 'errorButtons'),
+                content: 'An error occurred while processing your request.',
                 ephemeral: true
             });
         }

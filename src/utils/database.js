@@ -97,7 +97,15 @@ const migrations = [
     {
         version: 1,
         up: async () => {
-            // Migration 1 is now handled in initializeDatabase
+            // Migration 1: Update column names and add missing columns
+            await db.run(`
+                ALTER TABLE usage_tracking 
+                RENAME COLUMN usage_count TO uses;
+            `);
+            await db.run(`
+                ALTER TABLE usage_tracking 
+                RENAME COLUMN usage_date TO date;
+            `);
             return true;
         }
     }
@@ -261,10 +269,10 @@ function getUserUsageCount(userId, guildId, date) {
 function incrementUsageCount(userId, guildId, date) {
     return new Promise((resolve, reject) => {
         db.run(
-            `INSERT INTO usage_tracking (user_id, guild_id, date, uses, updated_at)
-             VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+            `INSERT INTO usage_tracking (user_id, guild_id, date, uses)
+             VALUES (?, ?, ?, 1)
              ON CONFLICT(user_id, guild_id, date) 
-             DO UPDATE SET uses = uses + 1, updated_at = CURRENT_TIMESTAMP`,
+             DO UPDATE SET uses = uses + 1`,
             [userId, guildId, date],
             (err) => {
                 if (err) reject(err);
