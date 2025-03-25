@@ -38,5 +38,8 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);
     } catch (error) {
         console.error(error);
+        process.exit(1); // Exit with error code if deployment fails
+    } finally {
+        process.exit(0); // Exit successfully after deployment
     }
 })(); 

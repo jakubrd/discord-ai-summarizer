@@ -100,6 +100,31 @@ function splitIntoChunks(text, maxLength = 1000) {
     return chunks;
 }
 
+// Add request timeout and retry configuration
+const REQUEST_TIMEOUT = 30000; // 30 seconds
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+async function makeRequestWithRetry(url, data, retries = MAX_RETRIES) {
+    try {
+        const response = await axios.post(url, data, {
+            timeout: REQUEST_TIMEOUT,
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        if (retries > 0 && (error.code === 'ECONNABORTED' || error.response?.status >= 500)) {
+            console.log(`Retrying request... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return makeRequestWithRetry(url, data, retries - 1);
+        }
+        throw error;
+    }
+}
+
 async function generateSummary(messages, guildId, channelId, locale = 'en') {
     try {
         // Validate IDs
@@ -134,33 +159,31 @@ async function generateSummary(messages, guildId, channelId, locale = 'en') {
 
         console.log('System prompt with template:', systemPrompt);
 
-        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: 'deepseek/deepseek-r1',
-            messages: [
-                {
-                    role: 'system',
-                    content: systemPrompt
-                },
-                {
-                    role: 'user',
-                    content: `Please summarize this Discord conversation with proper line spacing between points and message links. Here are the messages in chronological order:\n\n${
-                        formattedMessages.map(msg => 
-                            `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.author}: ${msg.content} (ID: ${msg.id})`
-                        ).join('\n')
-                    }`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000
-        }, {
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json'
+        const response = await makeRequestWithRetry(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+                model: 'deepseek/deepseek-r1',
+                messages: [
+                    {
+                        role: 'system',
+                        content: systemPrompt
+                    },
+                    {
+                        role: 'user',
+                        content: `Please summarize this Discord conversation with proper line spacing between points and message links. Here are the messages in chronological order:\n\n${
+                            formattedMessages.map(msg => 
+                                `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.author}: ${msg.content} (ID: ${msg.id})`
+                            ).join('\n')
+                        }`
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000
             }
-        });
+        );
 
         // Process the response to ensure proper formatting
-        let summary = response.data.choices[0].message.content;
+        let summary = response.choices[0].message.content;
         
         // Ensure proper line breaks between points
         summary = summary.replace(/^-/gm, '\n-').trim();
@@ -171,7 +194,7 @@ async function generateSummary(messages, guildId, channelId, locale = 'en') {
         return splitIntoChunks(summary);
     } catch (error) {
         console.error('Error generating summary:', error);
-        throw new Error('Failed to generate summary');
+        throw error;
     }
 }
 

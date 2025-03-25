@@ -2,7 +2,6 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, MessageFlags, PermissionsBitField, ChannelType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const { generateSummary } = require('./utils/openrouter');
 
 // Create a new client instance
 const client = new Client({
@@ -65,6 +64,19 @@ client.on('interactionCreate', async interaction => {
     } catch (error) {
         console.error('Error handling interaction:', error);
     }
+});
+
+// Add process error handlers
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Attempt to log to a file or monitoring service
+    // Don't exit the process in production
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Rejection:', error);
+    // Attempt to log to a file or monitoring service
+    // Don't exit the process in production
 });
 
 // Log in to Discord with your client's token

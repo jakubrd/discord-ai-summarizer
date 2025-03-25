@@ -38,17 +38,88 @@ async function getRemainingUses(userId, guildId) {
     return Math.max(0, settings.max_daily_uses - usageCount);
 }
 
-// Admin functions
-async function setMaxDailyUses(guildId, limit) {
-    await dbSetUsageLimit(guildId, limit);
+// Add rate limiting for admin commands
+const ADMIN_COMMAND_COOLDOWN = 5000; // 5 seconds
+const adminCommandCooldowns = new Map();
+
+function isAdminCommandOnCooldown(userId) {
+    const lastUse = adminCommandCooldowns.get(userId) || 0;
+    const now = Date.now();
+    if (now - lastUse < ADMIN_COMMAND_COOLDOWN) {
+        return true;
+    }
+    adminCommandCooldowns.set(userId, now);
+    return false;
 }
 
-async function addUnlimitedRole(guildId, roleId) {
-    await dbAddUnlimitedRole(guildId, roleId);
+// Add audit logging
+async function logAdminAction(guildId, userId, action, details) {
+    try {
+        await db.run(`
+            INSERT INTO admin_audit_log (guild_id, user_id, action, details, timestamp)
+            VALUES (?, ?, ?, ?, datetime('now'))
+        `, [guildId, userId, action, JSON.stringify(details)]);
+    } catch (error) {
+        console.error('Error logging admin action:', error);
+    }
 }
 
-async function removeUnlimitedRole(guildId, roleId) {
-    await dbRemoveUnlimitedRole(guildId, roleId);
+// Update admin functions to include rate limiting and audit logging
+async function setMaxDailyUses(guildId, maxUses, userId) {
+    if (isAdminCommandOnCooldown(userId)) {
+        throw new Error('Please wait before using another admin command');
+    }
+    
+    try {
+        await db.run(`
+            INSERT OR REPLACE INTO usage_limits (guild_id, max_daily_uses)
+            VALUES (?, ?)
+        `, [guildId, maxUses]);
+        
+        await logAdminAction(guildId, userId, 'set_max_daily_uses', { maxUses });
+        return true;
+    } catch (error) {
+        console.error('Error setting max daily uses:', error);
+        throw error;
+    }
+}
+
+async function addUnlimitedRole(guildId, roleId, userId) {
+    if (isAdminCommandOnCooldown(userId)) {
+        throw new Error('Please wait before using another admin command');
+    }
+    
+    try {
+        await db.run(`
+            INSERT INTO unlimited_roles (guild_id, role_id)
+            VALUES (?, ?)
+        `, [guildId, roleId]);
+        
+        await logAdminAction(guildId, userId, 'add_unlimited_role', { roleId });
+        return true;
+    } catch (error) {
+        console.error('Error adding unlimited role:', error);
+        throw error;
+    }
+}
+
+async function removeUnlimitedRole(guildId, roleId, userId) {
+    if (isAdminCommandOnCooldown(userId)) {
+        throw new Error('Please wait before using another admin command');
+    }
+    
+    try {
+        await db.run(`
+            DELETE FROM unlimited_roles
+            WHERE guild_id = ? AND role_id = ?
+        `, [guildId, roleId]);
+        
+        await logAdminAction(guildId, userId, 'remove_unlimited_role', { roleId });
+        return true;
+    } catch (error) {
+        console.error('Error removing unlimited role:', error);
+        throw error;
+    }
 }
 
 async function getSettings(guildId) {
