@@ -87,7 +87,7 @@ module.exports = {
             const response = await interaction.reply({
                 content: `${interaction.user} ${getLocaleString(effectiveLocale, 'chooseMessages')}`,
                 components: [messageCountRow, timeBasedRow],
-                ephemeral: true,
+                flags: [MessageFlags.Ephemeral],
                 withResponse: true
             });
 
@@ -102,7 +102,7 @@ module.exports = {
                 await interaction.editReply({
                     content: getLocaleString(effectiveLocale, 'generatingSummary'),
                     components: [],
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 // Send a public message about generation
@@ -196,7 +196,7 @@ module.exports = {
                 await interaction.editReply({
                     content: getLocaleString(effectiveLocale, 'summaryCreated', thread),
                     components: [],
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
 
             } catch (error) {
@@ -210,7 +210,7 @@ module.exports = {
             console.error('Error in summarize command:', error);
             await interaction.reply({
                 content: 'An error occurred while processing your request.',
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
         }
     }
