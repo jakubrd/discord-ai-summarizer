@@ -11,8 +11,8 @@ if (!fs.existsSync(dataDir)) {
 // Database file path
 const DB_FILE = path.join(dataDir, 'bot.db');
 
-// Create database connection
-const db = new sqlite3.Database(DB_FILE);
+// Modify the database variable declaration to let since we'll be reassigning it
+let db = new sqlite3.Database(DB_FILE);
 
 // Initialize database tables
 db.serialize(() => {
@@ -238,24 +238,21 @@ async function createBackup() {
     const backupPath = path.join(backupDir, `backup-${timestamp}.db`);
 
     try {
-        // Close the current connection
-        await new Promise((resolve, reject) => {
-            db.close((err) => {
-                if (err) reject(err);
-                else resolve();
+        // Check if database is open before attempting to close
+        if (db) {
+            await new Promise((resolve, reject) => {
+                db.close((err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
             });
-        });
+        }
 
         // Copy the database file
         fs.copyFileSync(DB_FILE, backupPath);
 
         // Reopen the connection
-        db = new sqlite3.Database(DB_FILE, (err) => {
-            if (err) {
-                console.error('Error reopening database:', err);
-                process.exit(1);
-            }
-        });
+        db = new sqlite3.Database(DB_FILE);
 
         // Clean up old backups
         const files = fs.readdirSync(backupDir);
@@ -268,6 +265,10 @@ async function createBackup() {
 
         console.log(`Database backup created: ${backupPath}`);
     } catch (error) {
+        // If any error occurs, ensure we have an open database connection
+        if (!db) {
+            db = new sqlite3.Database(DB_FILE);
+        }
         console.error('Error creating database backup:', error);
     }
 }
