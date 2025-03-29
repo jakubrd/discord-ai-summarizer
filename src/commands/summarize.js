@@ -87,6 +87,7 @@ module.exports = {
             const response = await interaction.reply({
                 content: `${interaction.user} ${getLocaleString(effectiveLocale, 'chooseMessages')}`,
                 components: [messageCountRow, timeBasedRow],
+                ephemeral: true,
                 withResponse: true
             });
 
