@@ -98,11 +98,16 @@ module.exports = {
                 // Wait for a button interaction
                 const confirmation = await response.resource.message.awaitMessageComponent({ filter, time: 60000 });
 
-                // Update the original message to show processing
+                // Update the original message to show processing (private)
                 await interaction.editReply({
-                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'generatingSummary')}`,
+                    content: getLocaleString(effectiveLocale, 'generatingSummary'),
                     components: [],
                     ephemeral: true
+                });
+
+                // Send a public message about generation
+                const publicMessage = await interaction.channel.send({
+                    content: getLocaleString(effectiveLocale, 'generatingSummary')
                 });
 
                 // Get the channel and guild from the original interaction
@@ -168,7 +173,7 @@ module.exports = {
                 let summaryChunks = await generateSummary(messageArray, guild.id, channel.id, effectiveLocale);
 
                 // Create a thread for the summary using effective locale
-                const thread = await channel.threads.create({
+                const thread = await publicMessage.startThread({
                     name: `Summary ${new Date().toLocaleDateString(effectiveLocale)}`,
                     autoArchiveDuration: 1440,
                     reason: 'Summary thread created'
@@ -182,9 +187,14 @@ module.exports = {
                     await thread.send(summaryChunks[i]);
                 }
 
-                // Update the original message to indicate the summary is in the thread
+                // Update the public message to mention the user
+                await publicMessage.edit({
+                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'summaryCreated', thread)}`
+                });
+
+                // Update the original ephemeral message
                 await interaction.editReply({
-                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'summaryCreated', thread)}`,
+                    content: getLocaleString(effectiveLocale, 'summaryCreated', thread),
                     components: [],
                     ephemeral: true
                 });
