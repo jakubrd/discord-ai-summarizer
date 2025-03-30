@@ -98,9 +98,9 @@ module.exports = {
                 // Wait for a button interaction
                 const confirmation = await response.resource.message.awaitMessageComponent({ filter, time: 60000 });
 
-                // Update the original message to show processing (private)
+                // Just hide the buttons after selection
                 await interaction.editReply({
-                    content: getLocaleString(effectiveLocale, 'generatingSummary'),
+                    content: `${interaction.user} ${getLocaleString(effectiveLocale, 'chooseMessages')}`,
                     components: [],
                     flags: [MessageFlags.Ephemeral]
                 });
@@ -160,9 +160,8 @@ module.exports = {
                 }
 
                 if (!messages || messages.size === 0) {
-                    await interaction.editReply({
-                        content: getLocaleString(effectiveLocale, 'noMessages'),
-                        components: []
+                    await publicMessage.edit({
+                        content: getLocaleString(effectiveLocale, 'noMessages')
                     });
                     return;
                 }
@@ -190,13 +189,6 @@ module.exports = {
                 // Update the public message to mention the user
                 await publicMessage.edit({
                     content: `${interaction.user} ${getLocaleString(effectiveLocale, 'summaryCreated', thread)}`
-                });
-
-                // Update the original ephemeral message
-                await interaction.editReply({
-                    content: getLocaleString(effectiveLocale, 'summaryCreated', thread),
-                    components: [],
-                    flags: [MessageFlags.Ephemeral]
                 });
 
             } catch (error) {
