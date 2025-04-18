@@ -178,7 +178,7 @@ async function generateSummary(messages, guildId, channelId, locale = 'en') {
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 4000
+                max_tokens: 0
             }
         );
 
