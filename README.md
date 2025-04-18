@@ -38,7 +38,7 @@ A Discord bot that uses AI to summarize messages in a channel, with support for 
 - Docker and Docker Compose (if running with Docker)
 - Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
 - OpenRouter API key (from [OpenRouter](https://openrouter.ai/))
-  - Currently using DeepSeek-R1 model (can be changed to any OpenRouter model)
+  - Currently using gemini-2.5-pro-preview-03-25 model (can be changed to any OpenRouter model)
 - SQLite3 (included with Node.js or Docker)
 
 ## Setup
@@ -106,7 +106,7 @@ The project structure is organized as follows:
   - `config.js` - User preferences command
   - `admin.js` - Server administration commands
 - `src/utils/` - Utility functions and API integrations
-  - `openrouter.js` - OpenRouter API integration with DeepSeek-R1
+  - `openrouter.js` - OpenRouter API integration with gemini-2.5-pro-preview-03-25
   - `config.js` - User configuration management
   - `locales.js` - Localization strings
   - `database.js` - SQLite database management
@@ -204,7 +204,7 @@ Required bot permissions:
 2. Choose from two types of summarization:
    - Number of messages (10, 30, 50, 100, 200)
    - Time period (Today, Yesterday, Last 3 Days, Last Week)
-3. Wait for the AI to generate a summary (using DeepSeek-R1 model)
+3. Wait for the AI to generate a summary (using gemini-2.5-pro-preview-03-25 model)
 4. The summary will be posted in a new thread
 
 ### Configuration
@@ -226,7 +226,7 @@ Required bot permissions:
 
 The bot supports multiple languages:
 - Interface elements (buttons, messages)
-- AI-generated summaries (using DeepSeek-R1's multilingual capabilities)
+- AI-generated summaries
 - Thread names and dates
 - Error messages
 - Usage limit messages
@@ -250,7 +250,7 @@ If you encounter issues:
 
 - Node.js 22.13.1 or higher
 - Discord.js v14
-- OpenRouter API key (with access to DeepSeek-R1 or other models)
+- OpenRouter API key (with access to gemini-2.5-pro-preview-03-25 or other models)
 - Discord Bot Token
 - SQLite3
 

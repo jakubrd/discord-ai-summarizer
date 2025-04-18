@@ -162,7 +162,7 @@ async function generateSummary(messages, guildId, channelId, locale = 'en') {
         const response = await makeRequestWithRetry(
             'https://openrouter.ai/api/v1/chat/completions',
             {
-                model: 'deepseek/deepseek-r1',
+                model: 'google/gemini-2.5-pro-preview-03-25',
                 messages: [
                     {
                         role: 'system',
